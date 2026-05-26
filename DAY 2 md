@@ -508,3 +508,6 @@ $$K_\text{RBF}(\mathbf{x}_i, \mathbf{x}_j) = \exp\!\left(-\gamma\|\mathbf{x}_i -
 - [scikit-learn SVM](https://scikit-learn.org/stable/modules/svm.html)
 
 ---
+
+*Render in GitHub, Obsidian, or VS Code (Markdown Preview Enhanced) for full LaTeX + Mermaid support.*
+
