@@ -1,0 +1,408 @@
+# 📐 Linear Models — A Complete Guide
+
+> A thorough reference covering theory, mathematics, workflows, and practical usage of linear models in machine learning and statistics.
+
+---
+
+## Table of Contents
+
+1. [What is a Linear Model?](#1-what-is-a-linear-model)
+2. [Simple Linear Regression](#2-simple-linear-regression)
+3. [Multiple Linear Regression](#3-multiple-linear-regression)
+4. [The Matrix Formulation](#4-the-matrix-formulation)
+5. [Ordinary Least Squares (OLS)](#5-ordinary-least-squares-ols)
+6. [Assumptions of Linear Models](#6-assumptions-of-linear-models)
+7. [Regularization](#7-regularization)
+8. [Logistic Regression (Linear Classifier)](#8-logistic-regression-linear-classifier)
+9. [Model Evaluation](#9-model-evaluation)
+10. [Workflows](#10-workflows)
+11. [Comparison of Linear Models](#11-comparison-of-linear-models)
+
+---
+
+## 1. What is a Linear Model?
+
+A **linear model** expresses the response variable $y$ as a **linear combination** of input features $x_1, x_2, \ldots, x_p$ plus a noise/error term:
+
+$$y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \cdots + \beta_p x_p + \varepsilon$$
+
+| Symbol | Meaning |
+|---|---|
+| $y$ | Response / target variable |
+| $x_i$ | Feature / predictor $i$ |
+| $\beta_0$ | Intercept (bias) |
+| $\beta_i$ | Coefficient (weight) for feature $i$ |
+| $\varepsilon$ | Irreducible noise term, $\varepsilon \sim \mathcal{N}(0, \sigma^2)$ |
+
+> **Key insight:** "Linear" refers to linearity in the *parameters* $\beta$, not necessarily in the features. You can model curves with $x^2, \log x$, etc., and it is still a linear model.
+
+---
+
+## 2. Simple Linear Regression
+
+With a **single predictor**, the model simplifies to:
+
+$$\hat{y} = \beta_0 + \beta_1 x$$
+
+### Closed-Form Estimates
+
+The OLS estimates are:
+
+$$\hat{\beta}_1 = \frac{\sum_{i=1}^{n}(x_i - \bar{x})(y_i - \bar{y})}{\sum_{i=1}^{n}(x_i - \bar{x})^2} = \frac{\text{Cov}(x, y)}{\text{Var}(x)}$$
+
+$$\hat{\beta}_0 = \bar{y} - \hat{\beta}_1 \bar{x}$$
+
+### Visualising the Fit
+
+```
+y
+▲
+│         ●
+│      ●  /
+│    ● / ●
+│   ●/
+│  /● ●
+│ /
+└──────────► x
+   ŷ = β₀ + β₁x  (best-fit line minimises Σresiduals²)
+```
+
+---
+
+## 3. Multiple Linear Regression
+
+With $p$ predictors:
+
+$$\hat{y} = \beta_0 + \sum_{j=1}^{p} \beta_j x_j$$
+
+### Interpretation of Coefficients
+
+- $\beta_j$ represents the **expected change in $y$** for a **one-unit increase in $x_j$**, holding all other predictors constant.
+- The intercept $\beta_0$ is the predicted value of $y$ when **all** $x_j = 0$.
+
+---
+
+## 4. The Matrix Formulation
+
+Stack $n$ observations into matrix form:
+
+$$\mathbf{y} = \mathbf{X} \boldsymbol{\beta} + \boldsymbol{\varepsilon}$$
+
+Where:
+
+$$\mathbf{X} = \begin{bmatrix} 1 & x_{11} & x_{12} & \cdots & x_{1p} \\ 1 & x_{21} & x_{22} & \cdots & x_{2p} \\ \vdots & \vdots & \vdots & \ddots & \vdots \\ 1 & x_{n1} & x_{n2} & \cdots & x_{np} \end{bmatrix}, \quad \boldsymbol{\beta} = \begin{bmatrix} \beta_0 \\ \beta_1 \\ \vdots \\ \beta_p \end{bmatrix}, \quad \mathbf{y} = \begin{bmatrix} y_1 \\ y_2 \\ \vdots \\ y_n \end{bmatrix}$$
+
+- $\mathbf{X}$ is the **design matrix** of shape $(n \times (p+1))$
+- The leading column of ones encodes the intercept $\beta_0$
+
+---
+
+## 5. Ordinary Least Squares (OLS)
+
+### Loss Function
+
+OLS minimises the **Residual Sum of Squares (RSS)**:
+
+$$\text{RSS}(\boldsymbol{\beta}) = \|\mathbf{y} - \mathbf{X}\boldsymbol{\beta}\|^2 = \sum_{i=1}^{n}(y_i - \hat{y}_i)^2$$
+
+### Normal Equations
+
+Setting $\nabla_{\boldsymbol{\beta}} \text{RSS} = 0$:
+
+$$\mathbf{X}^\top \mathbf{X} \hat{\boldsymbol{\beta}} = \mathbf{X}^\top \mathbf{y}$$
+
+Solving (when $\mathbf{X}^\top \mathbf{X}$ is invertible):
+
+$$\boxed{\hat{\boldsymbol{\beta}} = (\mathbf{X}^\top \mathbf{X})^{-1} \mathbf{X}^\top \mathbf{y}}$$
+
+### Hat Matrix (Projection)
+
+The fitted values can be written as:
+
+$$\hat{\mathbf{y}} = \mathbf{X}\hat{\boldsymbol{\beta}} = \underbrace{\mathbf{X}(\mathbf{X}^\top \mathbf{X})^{-1}\mathbf{X}^\top}_{\mathbf{H}} \mathbf{y}$$
+
+$\mathbf{H}$ is the **hat matrix** or **projection matrix** — it projects $\mathbf{y}$ onto the column space of $\mathbf{X}$.
+
+Properties of $\mathbf{H}$:
+- Symmetric: $\mathbf{H}^\top = \mathbf{H}$
+- Idempotent: $\mathbf{H}^2 = \mathbf{H}$
+
+### Gauss–Markov Theorem
+
+> Under the classical assumptions (zero-mean errors, homoscedasticity, no autocorrelation), the OLS estimator $\hat{\boldsymbol{\beta}}$ is the **Best Linear Unbiased Estimator (BLUE)**.
+
+$$\text{Var}(\hat{\boldsymbol{\beta}}) = \sigma^2 (\mathbf{X}^\top \mathbf{X})^{-1}$$
+
+---
+
+## 6. Assumptions of Linear Models
+
+| # | Assumption | Formal Statement |
+|---|---|---|
+| 1 | **Linearity** | $\mathbb{E}[\mathbf{y} \mid \mathbf{X}] = \mathbf{X}\boldsymbol{\beta}$ |
+| 2 | **No perfect multicollinearity** | $\text{rank}(\mathbf{X}) = p + 1$ |
+| 3 | **Zero-mean errors** | $\mathbb{E}[\boldsymbol{\varepsilon}] = \mathbf{0}$ |
+| 4 | **Homoscedasticity** | $\text{Var}(\varepsilon_i) = \sigma^2 \; \forall i$ |
+| 5 | **No autocorrelation** | $\text{Cov}(\varepsilon_i, \varepsilon_j) = 0 \; \forall i \neq j$ |
+| 6 | **Normality of errors** | $\varepsilon \sim \mathcal{N}(0, \sigma^2)$ *(for inference)* |
+
+### Diagnosing Violations
+
+```mermaid
+flowchart LR
+    A[Fit Linear Model] --> B{Check Residuals}
+    B --> C[Residuals vs Fitted\nPlot]
+    B --> D[Q-Q Plot]
+    B --> E[Scale-Location\nPlot]
+    B --> F[Residuals vs\nLeverage Plot]
+    C -->|Pattern found| G[Non-linearity\nor Heteroscedasticity]
+    D -->|Deviation from line| H[Non-normal errors]
+    E -->|Funnel shape| I[Heteroscedasticity]
+    F -->|High leverage + residual| J[Influential Outlier]
+    G --> K[Transform features\nor use WLS]
+    H --> L[Use robust\nestimators]
+    I --> K
+    J --> M[Inspect &\nremove if justified]
+```
+
+---
+
+## 7. Regularization
+
+When $p$ is large or features are correlated, plain OLS can **overfit**. Regularization adds a **penalty term** to the loss.
+
+### 7.1 Ridge Regression (L2)
+
+$$\hat{\boldsymbol{\beta}}_{\text{ridge}} = \arg\min_{\boldsymbol{\beta}} \left\{ \|\mathbf{y} - \mathbf{X}\boldsymbol{\beta}\|^2 + \lambda \|\boldsymbol{\beta}\|^2 \right\}$$
+
+Closed-form solution:
+
+$$\hat{\boldsymbol{\beta}}_{\text{ridge}} = (\mathbf{X}^\top \mathbf{X} + \lambda \mathbf{I})^{-1} \mathbf{X}^\top \mathbf{y}$$
+
+- Shrinks all coefficients toward zero but **never sets them exactly to zero**.
+- Stabilises the inversion when $\mathbf{X}^\top \mathbf{X}$ is near-singular.
+
+### 7.2 Lasso Regression (L1)
+
+$$\hat{\boldsymbol{\beta}}_{\text{lasso}} = \arg\min_{\boldsymbol{\beta}} \left\{ \|\mathbf{y} - \mathbf{X}\boldsymbol{\beta}\|^2 + \lambda \|\boldsymbol{\beta}\|_1 \right\}$$
+
+- Produces **sparse solutions** — sets some $\hat{\beta}_j = 0$ exactly.
+- Performs implicit **feature selection**.
+- No closed form; solved via coordinate descent.
+
+### 7.3 Elastic Net
+
+Combines both penalties:
+
+$$\hat{\boldsymbol{\beta}}_{\text{EN}} = \arg\min_{\boldsymbol{\beta}} \left\{ \|\mathbf{y} - \mathbf{X}\boldsymbol{\beta}\|^2 + \lambda_1 \|\boldsymbol{\beta}\|_1 + \lambda_2 \|\boldsymbol{\beta}\|^2 \right\}$$
+
+Or equivalently with mixing parameter $\alpha \in [0,1]$:
+
+$$\text{Penalty} = \lambda \left[ \alpha \|\boldsymbol{\beta}\|_1 + \frac{(1-\alpha)}{2} \|\boldsymbol{\beta}\|^2 \right]$$
+
+### Regularization Path
+
+```
+|β|
+ ▲
+ │ OLS
+ │ ●────────────────────────── β₁
+ │    ╲
+ │     ╲──────────────────────  β₂
+ │          ╲─────────────────  β₃
+ │               ╲──── 0        β₄  (Lasso: zeroed out)
+ └──────────────────────────►
+              λ →
+    small λ              large λ
+  (less reg)           (more reg)
+```
+
+---
+
+## 8. Logistic Regression (Linear Classifier)
+
+For **binary classification** ($y \in \{0, 1\}$), we model the **log-odds**:
+
+$$\log \frac{P(y=1 \mid \mathbf{x})}{P(y=0 \mid \mathbf{x})} = \boldsymbol{\beta}^\top \mathbf{x}$$
+
+Applying the **sigmoid (logistic) function** $\sigma(z) = \frac{1}{1+e^{-z}}$:
+
+$$P(y=1 \mid \mathbf{x}) = \sigma(\boldsymbol{\beta}^\top \mathbf{x}) = \frac{1}{1 + e^{-\boldsymbol{\beta}^\top \mathbf{x}}}$$
+
+### Loss Function — Binary Cross-Entropy (Log-Loss)
+
+$$\mathcal{L}(\boldsymbol{\beta}) = -\frac{1}{n}\sum_{i=1}^{n} \left[ y_i \log \hat{p}_i + (1 - y_i) \log(1 - \hat{p}_i) \right]$$
+
+There is **no closed-form solution** — optimised with gradient descent or Newton-Raphson:
+
+$$\boldsymbol{\beta}^{(t+1)} = \boldsymbol{\beta}^{(t)} - \eta \nabla_{\boldsymbol{\beta}} \mathcal{L}$$
+
+where $\eta$ is the learning rate.
+
+---
+
+## 9. Model Evaluation
+
+### For Regression
+
+| Metric | Formula | Notes |
+|---|---|---|
+| **MSE** | $\frac{1}{n}\sum(y_i - \hat{y}_i)^2$ | Penalises large errors |
+| **RMSE** | $\sqrt{\text{MSE}}$ | Same units as $y$ |
+| **MAE** | $\frac{1}{n}\sum\|y_i - \hat{y}_i\|$ | Robust to outliers |
+| **R²** | $1 - \frac{\text{RSS}}{\text{TSS}}$ | Proportion of variance explained |
+| **Adjusted R²** | $1 - (1-R^2)\frac{n-1}{n-p-1}$ | Penalises extra features |
+
+Where $\text{TSS} = \sum_i (y_i - \bar{y})^2$.
+
+### For Classification (Logistic Regression)
+
+| Metric | Formula |
+|---|---|
+| **Accuracy** | $\frac{TP + TN}{TP + TN + FP + FN}$ |
+| **Precision** | $\frac{TP}{TP + FP}$ |
+| **Recall** | $\frac{TP}{TP + FN}$ |
+| **F1 Score** | $\frac{2 \cdot \text{Precision} \cdot \text{Recall}}{\text{Precision} + \text{Recall}}$ |
+| **AUC-ROC** | Area under the ROC curve |
+
+---
+
+## 10. Workflows
+
+### 10.1 End-to-End Regression Workflow
+
+```mermaid
+flowchart TD
+    A([🗄️ Raw Data]) --> B[Exploratory Data Analysis\nplots, correlation matrix, summary stats]
+    B --> C{Missing\nValues?}
+    C -->|Yes| D[Impute or Drop\nmean / median / KNN]
+    C -->|No| E[Feature Engineering]
+    D --> E
+    E --> F[Train / Test Split\ne.g. 80-20]
+    F --> G[Standardise Features\nStandardScaler / MinMaxScaler]
+    G --> H{Choose\nModel}
+    H -->|Low p, low collinearity| I[OLS / Linear Regression]
+    H -->|High collinearity| J[Ridge Regression]
+    H -->|Feature selection needed| K[Lasso Regression]
+    H -->|Both| L[Elastic Net]
+    I & J & K & L --> M[Hyperparameter Tuning\nCross-Validation on λ]
+    M --> N[Fit on Training Set]
+    N --> O[Predict on Test Set]
+    O --> P[Evaluate Metrics\nRMSE, R², MAE]
+    P --> Q{Satisfactory\nPerformance?}
+    Q -->|No| R[Re-engineer Features\nor Try Non-linear Model]
+    Q -->|Yes| S([✅ Deploy Model])
+    R --> E
+```
+
+---
+
+### 10.2 Regularisation Selection Workflow
+
+```mermaid
+flowchart TD
+    A[Start: Linear Regression\nProblem] --> B{Is p >> n\nor features correlated?}
+    B -->|No| C[Use OLS]
+    B -->|Yes| D{Do you need\nfeature selection?}
+    D -->|Yes| E[Try Lasso\nL1 penalty]
+    D -->|No| F[Try Ridge\nL2 penalty]
+    E --> G{Many correlated\nfeatures?}
+    F --> H[Tune λ via\nCross-Validation]
+    G -->|Yes| I[Use Elastic Net\nL1 + L2]
+    G -->|No| H
+    I --> H
+    H --> J[Evaluate on\nHeld-Out Set]
+    C --> J
+```
+
+---
+
+### 10.3 Assumptions Checking Workflow
+
+```mermaid
+flowchart LR
+    A[Fitted Model] --> B[Plot Residuals\nvs Fitted]
+    B -->|Random scatter| C[✅ Linearity OK]
+    B -->|Curved pattern| D[❌ Add polynomial\nor interaction terms]
+
+    A --> E[Q-Q Plot of\nResiduals]
+    E -->|Points on diagonal| F[✅ Normality OK]
+    E -->|Heavy tails / skew| G[❌ Transform y\nor use robust regression]
+
+    A --> H[Breusch-Pagan\nTest]
+    H -->|p > 0.05| I[✅ Homoscedasticity OK]
+    H -->|p ≤ 0.05| J[❌ Use WLS\nor transform]
+
+    A --> K[VIF for each\npredictor]
+    K -->|VIF < 5| L[✅ No multicollinearity]
+    K -->|VIF ≥ 10| M[❌ Drop or combine\ncorrelated features]
+```
+
+---
+
+### 10.4 Gradient Descent for Linear Regression
+
+```mermaid
+sequenceDiagram
+    participant D as Data (X, y)
+    participant M as Model (β)
+    participant L as Loss Function
+    participant G as Gradient ∇L
+
+    D->>M: Initialise β randomly
+    loop Until convergence
+        M->>L: Compute ŷ = Xβ
+        L->>L: Compute MSE = (1/n)||y - ŷ||²
+        L->>G: Compute ∇β = -(2/n) Xᵀ(y - Xβ)
+        G->>M: Update β ← β - η·∇β
+    end
+    M-->>D: Return optimal β̂
+```
+
+---
+
+## 11. Comparison of Linear Models
+
+```mermaid
+quadrantChart
+    title Linear Model Comparison
+    x-axis Low Interpretability --> High Interpretability
+    y-axis Low Predictive Power --> High Predictive Power
+    quadrant-1 Ideal Zone
+    quadrant-2 Powerful but Complex
+    quadrant-3 Limited Use
+    quadrant-4 Simple but Weak
+
+    OLS: [0.85, 0.45]
+    Ridge: [0.75, 0.70]
+    Lasso: [0.70, 0.72]
+    Elastic Net: [0.60, 0.80]
+    Logistic Regression: [0.80, 0.65]
+```
+
+| Model | Penalty | Sparse Solution | Closed Form | Best Use Case |
+|---|---|---|---|---|
+| **OLS** | None | ❌ | ✅ | Low-dim, well-behaved data |
+| **Ridge** | $\lambda\|\boldsymbol{\beta}\|_2^2$ | ❌ | ✅ | Multicollinearity, many features |
+| **Lasso** | $\lambda\|\boldsymbol{\beta}\|_1$ | ✅ | ❌ | Feature selection |
+| **Elastic Net** | $\lambda_1\|\cdot\|_1 + \lambda_2\|\cdot\|_2^2$ | ✅ | ❌ | Correlated features + selection |
+| **Logistic Reg.** | Optional | Optional | ❌ | Binary / multiclass classification |
+
+---
+
+## Quick Reference — Key Equations
+
+$$\underbrace{\hat{\boldsymbol{\beta}} = (\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{X}^\top\mathbf{y}}_{\text{OLS}} \qquad \underbrace{\hat{\boldsymbol{\beta}} = (\mathbf{X}^\top\mathbf{X} + \lambda\mathbf{I})^{-1}\mathbf{X}^\top\mathbf{y}}_{\text{Ridge}}$$
+
+$$\underbrace{R^2 = 1 - \frac{\text{RSS}}{\text{TSS}}}_{\text{Goodness of Fit}} \qquad \underbrace{\hat{p} = \frac{1}{1+e^{-\boldsymbol{\beta}^\top\mathbf{x}}}}_{\text{Logistic Output}}$$
+
+---
+
+## References & Further Reading
+
+- Hastie, Tibshirani & Friedman — *The Elements of Statistical Learning* (free PDF at [ESL](https://hastie.su.domains/ElemStatLearn/))
+- James, Witten, Hastie & Tibshirani — *An Introduction to Statistical Learning* (ISLR)
+- Bishop — *Pattern Recognition and Machine Learning*
+- [scikit-learn Linear Models Docs](https://scikit-learn.org/stable/modules/linear_model.html)
+
+---
